@@ -4,6 +4,41 @@
 // czujnik wilgotności, teperatury i ciśnienia - podlaczony w SDA i SCL - pin 20, 21, oraz zasilanie 5v
 //
 
+/*
+Podlaczenia arduino do plytki:
+pin     |   PIN     |   PIN
+Płytka  |   Arduino |   Sprzęt
+--------|-----------|-------------------------------------------------------------------------
+PIN 35  |   29      |   Mostek H - 7 - wejście określające kierunek obrotów pierwszego silnika
+PIN 36  |   28      |   Mostek H - 2 - wejście określające kierunek obrotów pierwszego silnika
+PIN 37  |   27  PWM |   Mostek H - 1 - wejście ENABLE określające prędkość pierwszego silnika
+PIN 38  |   26      |   RFID - Reset (RFID - RC522)
+PIN 39  |   25      |   RFID - MISO
+PIN 40  |   24      |   RFID - MOSI
+PIN 41  |   23      |   RFID - SCK
+PIN 42  |   22      |   RFID - SDA
+PIN 43  |   21  SCL |   SCL - Barometr (BME/BMP280) & czujnik Swiatła TSL2561
+PIN 44  |   20  SDA |   SDA - Barometr (BME/BMP280) & czujnik Swiatła TSL2561
+PIN 45  |   2       |   Wyświetlacz LED - RS - wybór rejestrów (komenda, dane)
+PIN 46  |   3       |   Wyświetlacz LED - E - zezwolenie na zapis do rejestrów
+PIN 47  |   4       |   Wyświetlacz LED - D4 - dane
+PIN 48  |   5       |   Wyświetlacz LED - D5 - dane
+PIN 49  |   6       |   Wyświetlacz LED - D6 - dane
+PIN 50  |   7       |   Wyświetlacz LED - D7 - dane
+PIN 51  |   8       |   Czujnik Poziomu wody - druga czesc czujnika do masy
+PIN 52  |   A0      |   Czujnik wilgotności gleby - A0
+
+ZMIANA MUSZE ZMENIC !!!!!!!!!!!
+
+PIN 50  |   25      |   RFID - MISO
+PIN 51  |   24      |   RFID - MOSI
+PIN 52  |   23      |   RFID - SCK
+
+
+dodatkowo Masa, Zasilanie 5V, oraz 3,3V   
+
+*/
+
 #include "Seeed_BME280.h"
 #include <Wire.h>
 #include <LiquidCrystal.h> // dolaczenie pobranej biblioteki I2C dla LCD
@@ -18,13 +53,13 @@ BME280 bme280;
 sensors_event_t event; // do czujnika światła
 Adafruit_TSL2561_Unified tsl = Adafruit_TSL2561_Unified(TSL2561_ADDR_FLOAT, 12345);
 
-#define SILNIK_PWM 10       //mostek nóżka 1
-#define SILNIK_Kierunek1 22 // mostek nóżka 2 lub 7 sprawdzic na pompie który kierunek
-#define SILNIK_Kierunek2 23 // mostek nóżka 2 lub 7 sprawdzic na pompie który kierunek
-#define PortCzujkiSwiatla A5
+#define SILNIK_PWM 27       //mostek nóżka 1
+#define SILNIK_Kierunek1 28 // mostek nóżka 2 lub 7 sprawdzic na pompie który kierunek
+#define SILNIK_Kierunek2 29 // mostek nóżka 2 lub 7 sprawdzic na pompie który kierunek
+// #define PortCzujkiSwiatla A5
 #define PortCzujkiWilgotnosciGleby A0
 
-#define CZUJNIK_WODY_W_ZBIORNIKU (40) // do czujnika czy jest woda w zbiorniku z wodą
+#define CZUJNIK_WODY_W_ZBIORNIKU (8) // do czujnika czy jest woda w zbiorniku z wodą
 
 unsigned long rememberedTime; // = millis();
 // unsigned long nowTime;
@@ -76,7 +111,7 @@ void setup()
     setDisplayConstText();
     // swiatlo
 
-    pinMode(PortCzujkiSwiatla, INPUT);
+    // pinMode(PortCzujkiSwiatla, INPUT);
 
     // czujnik gleby
     pinMode(PortCzujkiWilgotnosciGleby, INPUT);
@@ -128,18 +163,22 @@ void loop()
 
     // tylko do testow do wolniejszego wyswietlania potem skasuj nnow i if oraz zmienna timeTime
     // jak skasuje to to odkomentuj ShowDataDisplay()
-    unsigned long nnow = millis();
-    if ((nnow - timeTime) > 400UL)
-    {
-        sprintf(text, "%u%%", (int)(humidityGround));
-        lcd.setCursor(9, 2);
-        lcd.print(text);
-        Serial.print("humidityGround ");
-        Serial.println(humidityGround);
-        timeTime = nnow;
-    }
+    // unsigned long nnow = millis();
+    // if ((nnow - timeTime) > 400UL)
+    // {
+    //     sprintf(text, "%u%%", (int)(humidityGround));
+    //     lcd.setCursor(9, 2);
+    //     lcd.print(text);
+    //     Serial.print("humidityGround ");
+    //     Serial.println(humidityGround);
+    //     timeTime = nnow;
 
-    //ShowDataDisplay();
+    //     sprintf(text, "%u", (int)(counterPWMForPump));
+    //     lcd.setCursor(9, 3);
+    //     lcd.print(text);
+    // }
+    analogWrite(SILNIK_PWM, counterPWMForPump);
+    ShowDataDisplay();
 
     delay(1000); // wait 2 seconds
 }
@@ -150,7 +189,7 @@ void startPomp()
     // TO DO tylko do testow zmieniam by szybciej ruszylo potem usun tego if
     if (counterPWMForPump == 0)
     {
-        counterPWMForPump = 170;
+        //counterPWMForPump = 130;
     }
     //
 
@@ -258,8 +297,6 @@ void displayLightSensorDetails(void)
     Serial.print("Resolution:   ");
     Serial.print(sensor.resolution);
     Serial.println(" lux");
-    Serial.print("humidityGround");
-    Serial.print(humidityGround);
     Serial.println();
     Serial.println("------------------------------------");
     Serial.println("");
@@ -356,6 +393,10 @@ void ShowDataConsol()
 
     Serial.print("Humidity of Air: ");
     Serial.print(humidityAir);
+    Serial.println("%");
+
+    Serial.print("humidityGround: ");
+    Serial.print(humidityGround);
     Serial.println("%");
 
     Serial.print(illuminance);
