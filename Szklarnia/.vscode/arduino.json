@@ -1,0 +1,7 @@
+{
+    "sketch": "Szklarnia.ino",
+    "board": "arduino:avr:megaADK",
+    "port": "COM3",
+    "programmer": "AVR ISP",
+    "output": "build"
+}
