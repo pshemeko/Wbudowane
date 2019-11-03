@@ -116,7 +116,7 @@ void loop()
     getDataFromBme280();
     getHumidityGround();
 
-    // gdy wilgotnosc gleby poniżej 40 % wlacz pompe i podlej
+    // gdy wilgotnosc gleby poniżej 40 % wlacz pompe i podlej gdy za dyza wylacz pompe
     if (humidityGround < 40.0)
     {
         startPomp();
@@ -125,6 +125,9 @@ void loop()
     {
         stopPomp();
     }
+
+    // tylko do testow do wolniejszego wyswietlania potem skasuj nnow i if oraz zmienna timeTime
+    // jak skasuje to to odkomentuj ShowDataDisplay()
     unsigned long nnow = millis();
     if ((nnow - timeTime) > 400UL)
     {
@@ -136,11 +139,7 @@ void loop()
         timeTime = nnow;
     }
 
-    //Serial.println(humidityGround);
     //ShowDataDisplay();
-
-    //startPomp();
-    // stopPomp();
 
     delay(1000); // wait 2 seconds
 }
@@ -148,10 +147,16 @@ void loop()
 void startPomp()
 {
     unsigned long now = millis();
+    // TO DO tylko do testow zmieniam by szybciej ruszylo potem usun tego if
+    if (counterPWMForPump == 0)
+    {
+        counterPWMForPump = 170;
+    }
+    //
 
     if (counterPWMForPump < 255)
     {
-        if ((now - rememberedTime) >= 100UL) // ważne żeby z dopikiem UL - bo unsigned long
+        if ((now - rememberedTime) >= 50UL) // ważne żeby z dopikiem UL - bo unsigned long
         {
             rememberedTime = now;
             counterPWMForPump += 5;
@@ -160,21 +165,18 @@ void startPomp()
                 counterPWMForPump = 255;
             }
             analogWrite(SILNIK_PWM, counterPWMForPump); //Spokojne rozpędzanie silnika
-            Serial.println();
-            Serial.print("counterPWMForPump: ");
-            Serial.print(counterPWMForPump);
-            Serial.println();
         }
     }
 }
 
 void stopPomp()
 {
-    if (counterPWMForPump == 255)
-    {
-        counterPWMForPump = 0;
-        Serial.println("ZATRZYMUJE POMPE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-    }
+    //if (counterPWMForPump == 255)
+    //{
+    counterPWMForPump = 0;
+    analogWrite(SILNIK_PWM, counterPWMForPump);
+    Serial.println("ZATRZYMUJE POMPE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+    //}
 }
 
 bool getDataIsWaterTankFull()
@@ -185,46 +187,43 @@ bool getDataIsWaterTankFull()
 
 void getHumidityGround()
 {
-    // bez podlaczenia czegokolwiek wynik jest 262 :-)
-    // min na Ani czujniku 479 min na moim 642
-    // max na Ani czujniku 324 max na moim 427
-
-    //humidityGround = calculateHumidityGround( analogRead(PortCzujkiWilgotnosciGleby));
-    // a nawet powinno byc :
-    // humidityGround = (1023 - analogRead(PortCzujkiWilgotnosciGleby));
-    // licza na ani czujniku
     float value = analogRead(PortCzujkiWilgotnosciGleby);
-    Serial.println("analog");
-    Serial.println(value);
 
     humidityGround = calculateHumidityGround(value);
 
-    Serial.println("calculated");
-    Serial.println(humidityGround);
-
-    // gdy poza zakresem tak na wszlki wypadag gdyby zle pomiary
+    // gdy poza zakresem tak na wszelki wypadek gdyby zle pomiary lub gdy wyjdzie za zakres
     if (humidityGround < 0)
+    {
         humidityGround = 0;
-    if (humidityGround > 100)
+    }
+    else if (humidityGround > 100)
+    {
         humidityGround = 100;
-    Serial.println("ify");
-    Serial.println(humidityGround);
+    }
 }
 
 float calculateHumidityGround(float value)
 {
+    // można za pomocą funkcji arduino :
     // map(value, minvalue, maxvalue, minoutput, maxoutput)
     // gotowa funja z arduino ktora obliczy procent wilgotnosci
     // http://tinybrd.pl/czujnik_wigloci/
+
+    // bez podlaczenia czegokolwiek wynik jest 262 :-)
+    // min na Ani czujniku 479 min na moim 642
+    // max na Ani czujniku 324 max na moim 427
+
+    // na Ani czujniku wzór jest:
     //float returnValue = ((-100 * value) + 47900) / 155.0;
 
-    // na moim wzór jest :
+    // na moim czujniku wzór jest :
     // humidityGround = (( -100 * value) + 64200) / 255.0;
 
     // gdy dla testow samo powietrze i woda:
     // min - 1026
     // max - 300
     float returnValue = ((-100 * value) + 102600) / 726.0;
+
     return returnValue;
 }
 
