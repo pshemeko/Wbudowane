@@ -9,14 +9,16 @@ Podlaczenia arduino do plytki:
 pin     |   PIN     |   PIN
 Płytka  |   Arduino |   Sprzęt
 --------|-----------|-------------------------------------------------------------------------
-PIN 35  |   29      |   Mostek H - 7 - wejście określające kierunek obrotów pierwszego silnika
-PIN 36  |   28      |   Mostek H - 2 - wejście określające kierunek obrotów pierwszego silnika
-PIN 37  |   27  PWM |   Mostek H - 1 - wejście ENABLE określające prędkość pierwszego silnika
-PIN 38  |   26      |   RFID - Reset (RFID - RC522)
-PIN 39  |   25      |   RFID - MISO
-PIN 40  |   24      |   RFID - MOSI
-PIN 41  |   23      |   RFID - SCK
-PIN 42  |   22      |   RFID - SDA
+PIN 23  |   22      |   Osobnym kablem laczyc z ledem  - Dioda Let imitujaca swiatlo - zarowke
+
+PIN 35  |   46      |   Mostek H - 7 - wejście określające kierunek obrotów pierwszego silnika
+PIN 36  |   47      |   Mostek H - 2 - wejście określające kierunek obrotów pierwszego silnika
+PIN 37  |   49      |   Czujnik Poziomu wody - druga czesc czujnika do masy  
+PIN 38  |   48      |   RFID - Reset (RFID - RC522)
+PIN 39  |   51      |   RFID - MOSI
+PIN 40  |   50      |   RFID - MISO
+PIN 41  |   53      |   RFID - SDA
+PIN 42  |   52      |   RFID - SCK
 PIN 43  |   21  SCL |   SCL - Barometr (BME/BMP280) & czujnik Swiatła TSL2561
 PIN 44  |   20  SDA |   SDA - Barometr (BME/BMP280) & czujnik Swiatła TSL2561
 PIN 45  |   2       |   Wyświetlacz LED - RS - wybór rejestrów (komenda, dane)
@@ -25,15 +27,8 @@ PIN 47  |   4       |   Wyświetlacz LED - D4 - dane
 PIN 48  |   5       |   Wyświetlacz LED - D5 - dane
 PIN 49  |   6       |   Wyświetlacz LED - D6 - dane
 PIN 50  |   7       |   Wyświetlacz LED - D7 - dane
-PIN 51  |   8       |   Czujnik Poziomu wody - druga czesc czujnika do masy
+PIN 51  |   8   PWM |   Mostek H - 1 - wejście ENABLE określające prędkość pierwszego silnika
 PIN 52  |   A0      |   Czujnik wilgotności gleby - A0
-
-ZMIANA MUSZE ZMENIC !!!!!!!!!!!
-
-PIN 50  |   25      |   RFID - MISO
-PIN 51  |   24      |   RFID - MOSI
-PIN 52  |   23      |   RFID - SCK
-
 
 dodatkowo Masa, Zasilanie 5V, oraz 3,3V   
 
@@ -53,13 +48,15 @@ BME280 bme280;
 sensors_event_t event; // do czujnika światła
 Adafruit_TSL2561_Unified tsl = Adafruit_TSL2561_Unified(TSL2561_ADDR_FLOAT, 12345);
 
-#define SILNIK_PWM 27       //mostek nóżka 1
-#define SILNIK_Kierunek1 28 // mostek nóżka 2 lub 7 sprawdzic na pompie który kierunek
-#define SILNIK_Kierunek2 29 // mostek nóżka 2 lub 7 sprawdzic na pompie który kierunek
+#define SILNIK_PWM 8        //mostek nóżka 1
+#define SILNIK_Kierunek1 46 // mostek nóżka 2 lub 7 sprawdzic na pompie który kierunek
+#define SILNIK_Kierunek2 47 // mostek nóżka 2 lub 7 sprawdzic na pompie który kierunek
 // #define PortCzujkiSwiatla A5
 #define PortCzujkiWilgotnosciGleby A0
 
-#define CZUJNIK_WODY_W_ZBIORNIKU (8) // do czujnika czy jest woda w zbiorniku z wodą
+#define DiodaJakoZarowka 22 // dioda ktora robi za żarowke
+
+#define CZUJNIK_WODY_W_ZBIORNIKU (49) // do czujnika czy jest woda w zbiorniku z wodą
 
 unsigned long rememberedTime; // = millis();
 // unsigned long nowTime;
@@ -122,9 +119,12 @@ void setup()
     pinMode(SILNIK_Kierunek1, OUTPUT); //Sygnały sterujące kierunkiem obrotów silnika nr 1
     pinMode(SILNIK_Kierunek2, OUTPUT);
 
+    pinMode(DiodaJakoZarowka, OUTPUT);
+
     digitalWrite(SILNIK_Kierunek1, LOW); //Silnik nr 1 - obroty w lewo
     digitalWrite(SILNIK_Kierunek2, HIGH);
     timeTime = millis();
+    ;
 }
 
 void loop()
@@ -159,6 +159,18 @@ void loop()
     if (humidityGround > 60.0)
     {
         stopPomp();
+    }
+
+    // Obsluga żarówki
+    // TODO ustawic progowe swiecenia zerowki(diody) empirycznie
+
+    if (illuminance < 300.0)
+    {
+        digitalWrite(DiodaJakoZarowka, HIGH);
+    }
+    else
+    {
+        digitalWrite(DiodaJakoZarowka, LOW);
     }
 
     // tylko do testow do wolniejszego wyswietlania potem skasuj nnow i if oraz zmienna timeTime
