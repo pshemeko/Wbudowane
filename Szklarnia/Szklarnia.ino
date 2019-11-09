@@ -195,6 +195,62 @@ void loop()
     delay(1000); // wait 2 seconds
 }
 
+void PorownajKarteZBaza(uint8_t karta[])
+{
+
+    uint8_t user1[10] = {225, 108, 146, 50};
+    uint8_t user2[10] = {253, 34, 125, 137};
+    uint8_t user3[10] = {201, 66, 169, 72};
+
+    if (user1[0] == karta[0])
+    {
+        if (user1[1] == karta[1])
+        {
+            if (user1[2] == karta[2])
+            {
+                if (user1[3] == karta[3])
+                {
+                    Serial.print(" Zarejestrowano: Uzytkownik 1 ");
+                }
+            }
+        }
+    }
+    else
+
+        if (user2[0] == karta[0])
+    {
+        if (user2[1] == karta[1])
+        {
+            if (user2[2] == karta[2])
+            {
+                if (user2[3] == karta[3])
+                {
+                    Serial.print(" Zarejestrowano: Uzytkownik 2 ");
+                }
+            }
+        }
+    }
+    else
+
+        if (user3[0] == karta[0])
+    {
+        if (user3[1] == karta[1])
+        {
+            if (user3[2] == karta[2])
+            {
+                if (user3[3] == karta[3])
+                {
+                    Serial.print(" Zarejestrowano: Uzytkownik 3 ");
+                }
+            }
+        }
+    }
+    else
+    {
+        Serial.print(" Nie ma uzytkownika w bazie ");
+    }
+}
+
 void startPomp()
 {
     unsigned long now = millis();
