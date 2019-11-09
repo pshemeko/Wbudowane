@@ -39,6 +39,8 @@ dodatkowo Masa, Zasilanie 5V, oraz 3,3V
 #include <LiquidCrystal.h> // dolaczenie pobranej biblioteki I2C dla LCD
 #include "RTClib.h"
 #include <Adafruit_TSL2561_U.h>
+#include <SPI.h>     //RFID
+#include <MFRC522.h> // RFID
 
 LiquidCrystal lcd(2, 3, 4, 5, 6, 7);
 RTC_DS1307 czas;
@@ -57,6 +59,11 @@ Adafruit_TSL2561_Unified tsl = Adafruit_TSL2561_Unified(TSL2561_ADDR_FLOAT, 1234
 #define DiodaJakoZarowka 22 // dioda ktora robi za żarowke
 
 #define CZUJNIK_WODY_W_ZBIORNIKU (49) // do czujnika czy jest woda w zbiorniku z wodą
+
+#define SS_PIN 53  // RFID
+#define RST_PIN 49 // RFID
+
+MFRC522 rfid_mfrc522(SS_PIN, RST_PIN); // Instance of the class for FRID
 
 unsigned long rememberedTime; // = millis();
 // unsigned long nowTime;
@@ -124,7 +131,11 @@ void setup()
     digitalWrite(SILNIK_Kierunek1, LOW); //Silnik nr 1 - obroty w lewo
     digitalWrite(SILNIK_Kierunek2, HIGH);
     timeTime = millis();
-    ;
+
+    // RFID
+    SPI.begin();             // Init SPI bus
+    rfid_mfrc522.PCD_Init(); // Init MFRC522
+    Serial.println("RFID reading UID");
 }
 
 void loop()
@@ -164,7 +175,7 @@ void loop()
     // Obsluga żarówki
     // TODO ustawic progowe swiecenia zerowki(diody) empirycznie
 
-    if (illuminance < 300.0)
+    if (illuminance < 40.0)
     {
         digitalWrite(DiodaJakoZarowka, HIGH);
     }
@@ -192,10 +203,60 @@ void loop()
     analogWrite(SILNIK_PWM, counterPWMForPump);
     ShowDataDisplay();
 
+    SprawdzRFID();
+
     delay(1000); // wait 2 seconds
 }
 
-void PorownajKarteZBaza(uint8_t karta[])
+void NapiszPrzywitanie(string uzytkownik)
+{
+
+    sprintf(text, "Dzien dobry             ");
+    lcd.setCursor(0, 0);
+    lcd.print(text);
+    sprintf(text, "                ");
+    lcd.setCursor(1, 0);
+    lcd.print(text);
+    sprintf(text, "                ");
+    lcd.setCursor(2, 0);
+    lcd.print(text);
+    sprintf(text, "                ");
+    lcd.setCursor(3, 0);
+    lcd.print(text);
+
+    sprintf(text, "%s", uzytkownik);
+    lcd.setCursor(2, 0);
+    lcd.print(text);
+
+    delay(4000); // wait 2 seconds
+    void setDisplayConstText();
+}
+
+bool SprawdzRFID()
+{
+    bool isInDatabase = false;
+    if (rfid_mfrc522.PICC_IsNewCardPresent())
+    {
+        if (rfid_mfrc522.PICC_ReadCardSerial())
+        {
+            // wypiswanie danych karty na port szeregowy
+            // Serial.print("Tag UID:");
+            // for (byte i = 0; i < rfid_mfrc522.uid.size; i++)
+            // {
+            //     Serial.print(rfid_mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " ");
+            //     Serial.print(rfid_mfrc522.uid.uidByte[i], HEX);
+            // }
+            // wypiswanie danych karty na port szeregowy
+
+            isInDatabase = PorownajKarteZBaza(rfid_mfrc522.uid.uidByte);
+            Serial.println();
+            rfid_mfrc522.PICC_HaltA();
+        }
+    }
+    return isInDatabase;
+}
+
+bool PorownajKarteZBaza(uint8_t karta[])
 {
 
     uint8_t user1[10] = {225, 108, 146, 50};
@@ -211,6 +272,8 @@ void PorownajKarteZBaza(uint8_t karta[])
                 if (user1[3] == karta[3])
                 {
                     Serial.print(" Zarejestrowano: Uzytkownik 1 ");
+                    NapiszPrzywitanie("Uzytkownik 1");
+                    return true;
                 }
             }
         }
@@ -226,6 +289,7 @@ void PorownajKarteZBaza(uint8_t karta[])
                 if (user2[3] == karta[3])
                 {
                     Serial.print(" Zarejestrowano: Uzytkownik 2 ");
+                    return true;
                 }
             }
         }
@@ -241,6 +305,7 @@ void PorownajKarteZBaza(uint8_t karta[])
                 if (user3[3] == karta[3])
                 {
                     Serial.print(" Zarejestrowano: Uzytkownik 3 ");
+                    return true;
                 }
             }
         }
@@ -248,6 +313,7 @@ void PorownajKarteZBaza(uint8_t karta[])
     else
     {
         Serial.print(" Nie ma uzytkownika w bazie ");
+        return false;
     }
 }
 
