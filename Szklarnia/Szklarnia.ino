@@ -208,28 +208,33 @@ void loop()
     delay(1000); // wait 2 seconds
 }
 
-void NapiszPrzywitanie(string uzytkownik)
+void NapiszPrzywitanie(char *uzytkownik)
 {
-
-    sprintf(text, "Dzien dobry             ");
+    // char Str4[] = "arduino";
+    //sprintf(text, "Dzien dobry         ");
+    //    lcd.setCursor(0, 0);
+    //    lcd.print("Dzien dobry             ");
+    //    //sprintf(text, "                   ");
+    //    lcd.setCursor(1, 0);
+    //    lcd.print("                   ");
+    //    //sprintf(text, "                  ");
+    //    lcd.setCursor(2, 0);
+    //    lcd.print("                   ");
+    //    //sprintf(text, "                  ");
+    //    lcd.setCursor(3, 0);
+    //    lcd.print("                   ");
+    lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print(text);
-    sprintf(text, "                ");
-    lcd.setCursor(1, 0);
-    lcd.print(text);
-    sprintf(text, "                ");
-    lcd.setCursor(2, 0);
-    lcd.print(text);
-    sprintf(text, "                ");
-    lcd.setCursor(3, 0);
-    lcd.print(text);
+    lcd.print("Dzien dobry             ");
 
     sprintf(text, "%s", uzytkownik);
-    lcd.setCursor(2, 0);
+    lcd.setCursor(1, 2);
     lcd.print(text);
 
     delay(4000); // wait 2 seconds
-    void setDisplayConstText();
+    lcd.clear();
+    setDisplayConstText();
+    Serial.println("ruszam");
 }
 
 bool SprawdzRFID()
@@ -272,7 +277,8 @@ bool PorownajKarteZBaza(uint8_t karta[])
                 if (user1[3] == karta[3])
                 {
                     Serial.print(" Zarejestrowano: Uzytkownik 1 ");
-                    NapiszPrzywitanie("Uzytkownik 1");
+                    char *user = "Uzytkownik 1";
+                    NapiszPrzywitanie(user);
                     return true;
                 }
             }
@@ -289,6 +295,8 @@ bool PorownajKarteZBaza(uint8_t karta[])
                 if (user2[3] == karta[3])
                 {
                     Serial.print(" Zarejestrowano: Uzytkownik 2 ");
+                    char *user = "Uzytkownik 2";
+                    NapiszPrzywitanie(user);
                     return true;
                 }
             }
@@ -305,6 +313,8 @@ bool PorownajKarteZBaza(uint8_t karta[])
                 if (user3[3] == karta[3])
                 {
                     Serial.print(" Zarejestrowano: Uzytkownik 3 ");
+                    char *user = "Uzytkownik 3";
+                    NapiszPrzywitanie(user);
                     return true;
                 }
             }
@@ -500,7 +510,7 @@ void ShowDataDisplay()
     lcd.setCursor(3, 3);
     lcd.print(text);
 
-    ShowDataConsol();
+    //ShowDataConsol();
 }
 
 void ShowDataConsol()
