@@ -74,15 +74,18 @@ Adafruit_TSL2561_Unified tsl = Adafruit_TSL2561_Unified(TSL2561_ADDR_FLOAT, 1234
 
 MFRC522 rfid_mfrc522(SS_PIN, RST_PIN); // Instance of the class for FRID
 
-bool isAuthorized = false;
+bool isAuthorized = false;    // TODO usun juz nie uzywne
 unsigned long rememberedTime; // = millis();
 unsigned long timeForElectroMagneticLock;
 bool isElectroMagneticUnLock = false;
 
 unsigned long timeForDisplay;
+unsigned long timeOfLastRefreshLed; // ostatnia chwila kiedy odswiezylismy dane na wyswietlaczu
+
 bool isResetDisplay = false;
 // unsigned long nowTime;
 int counterPWMForPump = 0;
+int MAX_VALUE_FOR_COUNTER_PWM = 0;
 
 //
 //for test
@@ -128,7 +131,7 @@ void setup()
         Serial.println("Device error!");
     }
 
-    // setDisplayConstText();
+    setDisplayConstText();
     // swiatlo
 
     // pinMode(PortCzujkiSwiatla, INPUT);
@@ -151,6 +154,7 @@ void setup()
     timeTime = millis();
     timeForElectroMagneticLock = timeTime;
     timeForDisplay = timeTime;
+    timeOfLastRefreshLed = timeTime;
 
     // RFID
     SPI.begin(); // Init SPI bus
@@ -182,12 +186,12 @@ void loop()
     //
     //
 
-    if (!isAuthorized)
-    {
-        NapisStartowy();
-        SprawdzRFID();
-    }
-    else
+    // if (!isAuthorized)
+    // {
+    //     NapisStartowy();
+    //     SprawdzRFID();
+    // }
+    // else
     {
 
         //light
@@ -195,6 +199,11 @@ void loop()
         getDataIsWaterTankFull();
         getDataFromBme280();
         getHumidityGround();
+
+        if (!waterSensor)
+        {
+            NapisBrakWody();
+        }
 
         // gdy wilgotnosc gleby poniżej 40 % wlacz pompe i podlej gdy za dyza wylacz pompe
         if (humidityGround < 46.0)
@@ -235,8 +244,8 @@ void loop()
         //     lcd.print(text);
         // }
         // analogWrite(SILNIK_PWM, counterPWMForPump);
-        Serial.print("pwm : ");
-        Serial.println(counterPWMForPump);
+        // Serial.print("pwm : ");
+        // Serial.println(counterPWMForPump);
         // resetuje wyswietlacz po zmianach na niezmiennych
         if (isResetDisplay)
         {
@@ -249,7 +258,12 @@ void loop()
 
         if (!isResetDisplay)
         {
-            ShowDataDisplay();
+            unsigned long now = millis();
+            if ((now - timeOfLastRefreshLed) >= 1000UL)
+            {
+                timeOfLastRefreshLed = now;
+                ShowDataDisplay();
+            }
         }
         // Serial.println(isResetDisplay);
 
@@ -264,7 +278,7 @@ void loop()
             }
         }
     }
-    delay(10); // wait 2 seconds
+    delay(100); // wait 2 seconds
 }
 
 void NapiszPrzywitanie(const char *uzytkownik)
@@ -288,22 +302,27 @@ void NapiszBrakAutoryzacji()
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print("Brak uprawnien");
+    lcd.setCursor(5, 1);
+    lcd.print("Do wejscia");
     timeForDisplay = millis();
     isResetDisplay = true;
 
-    delay(2000); // wait 2 seconds
-    NapisStartowy();
+    //delay(2000); // wait 2 seconds
+    // NapisStartowy();
 }
 
 void NapisBrakWody()
 {
-    lcd.clear();
-    lcd.setCursor(0, 1);
-    lcd.print("Brak");
-    lcd.setCursor(5, 2);
-    lcd.print("wody");
-    lcd.setCursor(7, 3);
-    lcd.print("w zbiorniku");
+    if (!isResetDisplay)
+    {
+        lcd.clear();
+        lcd.setCursor(0, 1);
+        lcd.print("Brak wody");
+        lcd.setCursor(7, 2);
+        lcd.print("w zbiorniku");
+        timeForDisplay = millis();
+        isResetDisplay = true;
+    }
 }
 
 void NapisStartowy()
@@ -407,7 +426,7 @@ bool PorownajKarteZBaza(uint8_t karta[])
         {
             if (user3[2] == karta[2])
             {
-                if (user3[3] == karta[3])
+                if (user3[3] == karta[2])
                 {
                     Serial.print(" Zarejestrowano: Uzytkownik 3 ");
                     const char *user = "Uzytkownik 3";
@@ -426,7 +445,6 @@ bool PorownajKarteZBaza(uint8_t karta[])
 
 void startPomp()
 {
-    unsigned long now = millis();
     // TO DO tylko do testow zmieniam by szybciej ruszylo potem usun tego if
     if (counterPWMForPump == 0)
     {
@@ -434,15 +452,16 @@ void startPomp()
     }
     //
 
-    if (counterPWMForPump < 255)
+    if (counterPWMForPump < MAX_VALUE_FOR_COUNTER_PWM)
     {
+        unsigned long now = millis();
         if ((now - rememberedTime) >= 5UL) // ważne żeby z dopikiem UL - bo unsigned long
         {
             rememberedTime = now;
             counterPWMForPump += 5;
-            if (counterPWMForPump > 50)
+            if (counterPWMForPump > MAX_VALUE_FOR_COUNTER_PWM)
             {
-                counterPWMForPump = 50;
+                counterPWMForPump = MAX_VALUE_FOR_COUNTER_PWM;
             }
             analogWrite(SILNIK_PWM, counterPWMForPump); //Spokojne rozpędzanie silnika
         }
@@ -459,10 +478,10 @@ void stopPomp()
     //}
 }
 
-bool getDataIsWaterTankFull()
+void getDataIsWaterTankFull()
 {
     waterSensor = digitalRead(CZUJNIK_WODY_W_ZBIORNIKU);
-    return static_cast<bool>(waterSensor);
+    ///return static_cast<bool>(waterSensor);
 }
 
 void getHumidityGround()
