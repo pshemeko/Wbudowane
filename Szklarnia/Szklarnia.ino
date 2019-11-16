@@ -10,6 +10,8 @@ pin     |   PIN     |   PIN
 Płytka  |   Arduino |   Sprzęt
 --------|-----------|-------------------------------------------------------------------------
 PIN 23  |   22      |   Osobnym kablem laczyc z ledem  - Dioda Let imitujaca swiatlo - zarowke
+        |   23      |   Podlaczenie do elektrozamka poki co osobno
+                        Podlaczenie: pin 23 do VCC a pozostałe GND i IN do GND
 
 PIN 35  |   46      |   Mostek H - 7 - wejście określające kierunek obrotów pierwszego silnika
 PIN 36  |   47      |   Mostek H - 2 - wejście określające kierunek obrotów pierwszego silnika
@@ -34,6 +36,12 @@ dodatkowo Masa, Zasilanie 5V, oraz 3,3V
 
 */
 
+/////////////// TODO
+//pierwszy if czy jest dostęp karta
+// drugi if czy jest woda w zbiorniku jak nie to wyswietlic napisów
+// jesli jest woda wyswietlamy dane:
+// co 20 sekund sprawdzac czujnik wilgotnosci gleby
+
 #include "Seeed_BME280.h"
 #include <Wire.h>
 #include <LiquidCrystal.h> // dolaczenie pobranej biblioteki I2C dla LCD
@@ -43,12 +51,12 @@ dodatkowo Masa, Zasilanie 5V, oraz 3,3V
 #include <MFRC522.h> // RFID
 
 LiquidCrystal lcd(2, 3, 4, 5, 6, 7);
-RTC_DS1307 czas;
+RTC_DS1307 czas; // TODO co to i czy potrzebne
 
-BME280 bme280;
+BME280 bme280; // pressure, temperature, altitude, humidityAir
 // swiatlo
-sensors_event_t event; // do czujnika światła
-Adafruit_TSL2561_Unified tsl = Adafruit_TSL2561_Unified(TSL2561_ADDR_FLOAT, 12345);
+sensors_event_t event;                                                              // do czujnika światła
+Adafruit_TSL2561_Unified tsl = Adafruit_TSL2561_Unified(TSL2561_ADDR_FLOAT, 12345); // swiatlo chyba
 
 #define SILNIK_PWM 8        //mostek nóżka 1
 #define SILNIK_Kierunek1 46 // mostek nóżka 2 lub 7 sprawdzic na pompie który kierunek
@@ -57,6 +65,7 @@ Adafruit_TSL2561_Unified tsl = Adafruit_TSL2561_Unified(TSL2561_ADDR_FLOAT, 1234
 #define PortCzujkiWilgotnosciGleby A0
 
 #define DiodaJakoZarowka 22 // dioda ktora robi za żarowke
+#define ElektrozamekPin 23  // Pin d sterowania elektrozamkiem
 
 #define CZUJNIK_WODY_W_ZBIORNIKU (49) // do czujnika czy jest woda w zbiorniku z wodą
 
@@ -65,9 +74,16 @@ Adafruit_TSL2561_Unified tsl = Adafruit_TSL2561_Unified(TSL2561_ADDR_FLOAT, 1234
 
 MFRC522 rfid_mfrc522(SS_PIN, RST_PIN); // Instance of the class for FRID
 
+bool isAuthorized = false;
 unsigned long rememberedTime; // = millis();
+unsigned long timeForElectroMagneticLock;
+bool isElectroMagneticUnLock = false;
+
+unsigned long timeForDisplay;
+bool isResetDisplay = false;
 // unsigned long nowTime;
 int counterPWMForPump = 0;
+
 //
 //for test
 unsigned long timeTime;
@@ -112,7 +128,7 @@ void setup()
         Serial.println("Device error!");
     }
 
-    setDisplayConstText();
+    // setDisplayConstText();
     // swiatlo
 
     // pinMode(PortCzujkiSwiatla, INPUT);
@@ -127,10 +143,14 @@ void setup()
     pinMode(SILNIK_Kierunek2, OUTPUT);
 
     pinMode(DiodaJakoZarowka, OUTPUT);
+    pinMode(ElektrozamekPin, OUTPUT);
+    digitalWrite(ElektrozamekPin, LOW);
 
     digitalWrite(SILNIK_Kierunek1, LOW); //Silnik nr 1 - obroty w lewo
     digitalWrite(SILNIK_Kierunek2, HIGH);
     timeTime = millis();
+    timeForElectroMagneticLock = timeTime;
+    timeForDisplay = timeTime;
 
     // RFID
     SPI.begin();             // Init SPI bus
@@ -156,85 +176,134 @@ void loop()
     //
     //
 
-    //light
-    getIlluminance();
-    getDataIsWaterTankFull();
-    getDataFromBme280();
-    getHumidityGround();
-
-    // gdy wilgotnosc gleby poniżej 40 % wlacz pompe i podlej gdy za dyza wylacz pompe
-    if (humidityGround < 40.0)
+    if (!isAuthorized)
     {
-        startPomp();
-    }
-    if (humidityGround > 60.0)
-    {
-        stopPomp();
-    }
-
-    // Obsluga żarówki
-    // TODO ustawic progowe swiecenia zerowki(diody) empirycznie
-
-    if (illuminance < 40.0)
-    {
-        digitalWrite(DiodaJakoZarowka, HIGH);
+        NapisStartowy();
+        SprawdzRFID();
     }
     else
     {
-        digitalWrite(DiodaJakoZarowka, LOW);
+
+        //light
+        getIlluminance();
+        getDataIsWaterTankFull();
+        getDataFromBme280();
+        getHumidityGround();
+
+        // gdy wilgotnosc gleby poniżej 40 % wlacz pompe i podlej gdy za dyza wylacz pompe
+        if (humidityGround < 46.0)
+        {
+            startPomp();
+        }
+        if (humidityGround > 60.0)
+        {
+            stopPomp();
+        }
+
+        // Obsluga żarówki
+        // TODO ustawic progowe swiecenia zerowki(diody) empirycznie
+
+        if (illuminance < 40.0)
+        {
+            digitalWrite(DiodaJakoZarowka, HIGH);
+        }
+        else
+        {
+            digitalWrite(DiodaJakoZarowka, LOW);
+        }
+
+        // tylko do testow do wolniejszego wyswietlania potem skasuj nnow i if oraz zmienna timeTime
+        // jak skasuje to to odkomentuj ShowDataDisplay()
+        // unsigned long nnow = millis();
+        // if ((nnow - timeTime) > 400UL)
+        // {
+        //     sprintf(text, "%u%%", (int)(humidityGround));
+        //     lcd.setCursor(9, 2);
+        //     lcd.print(text);
+        //     Serial.print("humidityGround ");
+        //     Serial.println(humidityGround);
+        //     timeTime = nnow;
+
+        //     sprintf(text, "%u", (int)(counterPWMForPump));
+        //     lcd.setCursor(9, 3);
+        //     lcd.print(text);
+        // }
+        analogWrite(SILNIK_PWM, counterPWMForPump);
+
+        // resetuje wyswietlacz po zmianach na niezmiennych
+        if (isResetDisplay)
+        {
+            if ((millis() - timeForDisplay) >= 5000UL)
+            {
+                isResetDisplay = false;
+                setDisplayConstText();
+            }
+        }
+
+        if (!isResetDisplay)
+        {
+            ShowDataDisplay();
+        }
+        Serial.println(isResetDisplay);
+
+        // ShowDataConsol();
+
+        SprawdzRFID();
+        if (isElectroMagneticUnLock)
+        {
+            if (millis() - timeForElectroMagneticLock >= 5000UL)
+            {
+                closeLock();
+            }
+        }
     }
-
-    // tylko do testow do wolniejszego wyswietlania potem skasuj nnow i if oraz zmienna timeTime
-    // jak skasuje to to odkomentuj ShowDataDisplay()
-    // unsigned long nnow = millis();
-    // if ((nnow - timeTime) > 400UL)
-    // {
-    //     sprintf(text, "%u%%", (int)(humidityGround));
-    //     lcd.setCursor(9, 2);
-    //     lcd.print(text);
-    //     Serial.print("humidityGround ");
-    //     Serial.println(humidityGround);
-    //     timeTime = nnow;
-
-    //     sprintf(text, "%u", (int)(counterPWMForPump));
-    //     lcd.setCursor(9, 3);
-    //     lcd.print(text);
-    // }
-    analogWrite(SILNIK_PWM, counterPWMForPump);
-    ShowDataDisplay();
-
-    SprawdzRFID();
-
-    delay(1000); // wait 2 seconds
+    delay(500); // wait 2 seconds
 }
 
-void NapiszPrzywitanie(char *uzytkownik)
+void NapiszPrzywitanie(const char *uzytkownik)
 {
-    // char Str4[] = "arduino";
-    //sprintf(text, "Dzien dobry         ");
-    //    lcd.setCursor(0, 0);
-    //    lcd.print("Dzien dobry             ");
-    //    //sprintf(text, "                   ");
-    //    lcd.setCursor(1, 0);
-    //    lcd.print("                   ");
-    //    //sprintf(text, "                  ");
-    //    lcd.setCursor(2, 0);
-    //    lcd.print("                   ");
-    //    //sprintf(text, "                  ");
-    //    lcd.setCursor(3, 0);
-    //    lcd.print("                   ");
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print("Dzien dobry             ");
+    lcd.print("Dzien dobry");
 
     sprintf(text, "%s", uzytkownik);
     lcd.setCursor(1, 2);
     lcd.print(text);
+    timeForDisplay = millis();
+    isResetDisplay = true;
 
-    delay(4000); // wait 2 seconds
+    //delay(4000); // wait 2 seconds TODO WYWAL czekanie i uruchom program
+    //setDisplayConstText();
+}
+
+void NapiszBrakAutoryzacji()
+{
     lcd.clear();
-    setDisplayConstText();
-    Serial.println("ruszam");
+    lcd.setCursor(0, 0);
+    lcd.print("Brak uprawnien");
+    timeForDisplay = millis();
+    isResetDisplay = true;
+
+    delay(2000); // wait 2 seconds
+    NapisStartowy();
+}
+
+void NapisBrakWody()
+{
+    lcd.clear();
+    lcd.setCursor(0, 1);
+    lcd.print("Brak");
+    lcd.setCursor(5, 2);
+    lcd.print("wody");
+    lcd.setCursor(7, 3);
+    lcd.print("w zbiorniku");
+}
+
+void NapisStartowy()
+{
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Przyloz karte");
 }
 
 bool SprawdzRFID()
@@ -254,6 +323,10 @@ bool SprawdzRFID()
             // wypiswanie danych karty na port szeregowy
 
             isInDatabase = PorownajKarteZBaza(rfid_mfrc522.uid.uidByte);
+            if (isInDatabase)
+            {
+                openLock();
+            }
             Serial.println();
             rfid_mfrc522.PICC_HaltA();
         }
@@ -261,9 +334,22 @@ bool SprawdzRFID()
     return isInDatabase;
 }
 
+void openLock()
+{
+    digitalWrite(ElektrozamekPin, HIGH);
+    timeForElectroMagneticLock = millis();
+    isElectroMagneticUnLock = true;
+}
+
+void closeLock()
+{
+    digitalWrite(ElektrozamekPin, LOW);
+    isElectroMagneticUnLock = false;
+}
+
 bool PorownajKarteZBaza(uint8_t karta[])
 {
-
+    // baza uzykownikow i ich kart
     uint8_t user1[10] = {225, 108, 146, 50};
     uint8_t user2[10] = {253, 34, 125, 137};
     uint8_t user3[10] = {201, 66, 169, 72};
@@ -277,8 +363,9 @@ bool PorownajKarteZBaza(uint8_t karta[])
                 if (user1[3] == karta[3])
                 {
                     Serial.print(" Zarejestrowano: Uzytkownik 1 ");
-                    char *user = "Uzytkownik 1";
+                    const char *user = "Uzytkownik 1";
                     NapiszPrzywitanie(user);
+                    isAuthorized = true;
                     return true;
                 }
             }
@@ -295,8 +382,9 @@ bool PorownajKarteZBaza(uint8_t karta[])
                 if (user2[3] == karta[3])
                 {
                     Serial.print(" Zarejestrowano: Uzytkownik 2 ");
-                    char *user = "Uzytkownik 2";
+                    const char *user = "Uzytkownik 2";
                     NapiszPrzywitanie(user);
+                    isAuthorized = true;
                     return true;
                 }
             }
@@ -313,18 +401,18 @@ bool PorownajKarteZBaza(uint8_t karta[])
                 if (user3[3] == karta[3])
                 {
                     Serial.print(" Zarejestrowano: Uzytkownik 3 ");
-                    char *user = "Uzytkownik 3";
+                    const char *user = "Uzytkownik 3";
                     NapiszPrzywitanie(user);
+                    isAuthorized = true;
                     return true;
                 }
             }
         }
     }
-    else
-    {
-        Serial.print(" Nie ma uzytkownika w bazie ");
-        return false;
-    }
+
+    Serial.print(" Nie ma uzytkownika w bazie ");
+    NapiszBrakAutoryzacji();
+    return false;
 }
 
 void startPomp()
@@ -412,7 +500,7 @@ float calculateHumidityGround(float value)
 
 void setDisplayConstText()
 { // wyswietlnie stalych niezmiennych napisów
-
+    lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print("Temp:");
     lcd.setCursor(0, 1);
@@ -509,8 +597,6 @@ void ShowDataDisplay()
     sprintf(text, "%uLux", (int)(illuminance));
     lcd.setCursor(3, 3);
     lcd.print(text);
-
-    //ShowDataConsol();
 }
 
 void ShowDataConsol()
