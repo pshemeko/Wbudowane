@@ -426,7 +426,7 @@ bool PorownajKarteZBaza(uint8_t karta[])
         {
             if (user3[2] == karta[2])
             {
-                if (user3[3] == karta[2])
+                if (user3[3] == karta[3])
                 {
                     Serial.print(" Zarejestrowano: Uzytkownik 3 ");
                     const char *user = "Uzytkownik 3";
