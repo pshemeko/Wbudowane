@@ -11,7 +11,7 @@ Płytka  |   Arduino |   Sprzęt
 --------|-----------|-------------------------------------------------------------------------
 PIN 23  |   22      |   Osobnym kablem laczyc z ledem  - Dioda Let imitujaca swiatlo - zarowke
         |   23      |   Podlaczenie do elektrozamka poki co osobno
-                        Podlaczenie: pin 23 do VCC a pozostałe GND i IN do GND
+                        Podlaczenie: pin 43 do VCC a pozostałe GND i IN do GND
 
 PIN 35  |   46      |   Mostek H - 7 - wejście określające kierunek obrotów pierwszego silnika
 PIN 36  |   47      |   Mostek H - 2 - wejście określające kierunek obrotów pierwszego silnika
@@ -51,7 +51,7 @@ dodatkowo Masa, Zasilanie 5V, oraz 3,3V
 #include <MFRC522.h> // RFID
 
 LiquidCrystal lcd(2, 3, 4, 5, 6, 7);
-RTC_DS1307 czas; // TODO co to i czy potrzebne
+//RTC_DS1307 czas; // TODO co to i czy potrzebne
 
 BME280 bme280; // pressure, temperature, altitude, humidityAir
 // swiatlo
@@ -65,12 +65,12 @@ Adafruit_TSL2561_Unified tsl = Adafruit_TSL2561_Unified(TSL2561_ADDR_FLOAT, 1234
 #define PortCzujkiWilgotnosciGleby A0
 
 #define DiodaJakoZarowka 22 // dioda ktora robi za żarowke
-#define ElektrozamekPin 23  // Pin d sterowania elektrozamkiem
+#define ElektrozamekPin 43  // Pin d sterowania elektrozamkiem
 
 #define CZUJNIK_WODY_W_ZBIORNIKU (49) // do czujnika czy jest woda w zbiorniku z wodą
 
 #define SS_PIN 53  // RFID
-#define RST_PIN 49 // RFID
+#define RST_PIN 48 // RFID
 
 MFRC522 rfid_mfrc522(SS_PIN, RST_PIN); // Instance of the class for FRID
 
@@ -118,7 +118,7 @@ void setup()
 
     //
     Wire.begin();
-    czas.begin();
+    // czas.begin();
     lcd.begin(20, 4);
 
     Serial.println(F("Arduino + BMP280"));
@@ -153,8 +153,14 @@ void setup()
     timeForDisplay = timeTime;
 
     // RFID
-    SPI.begin();             // Init SPI bus
+    SPI.begin(); // Init SPI bus
+    pinMode(SS_PIN, OUTPUT);
+    digitalWrite(SS_PIN, LOW);
+
     rfid_mfrc522.PCD_Init(); // Init MFRC522
+    pinMode(SS_PIN, OUTPUT);
+    digitalWrite(SS_PIN, HIGH);
+
     Serial.println("RFID reading UID");
 }
 
@@ -195,7 +201,7 @@ void loop()
         {
             startPomp();
         }
-        if (humidityGround > 60.0)
+        if (humidityGround > 48.0)
         {
             stopPomp();
         }
@@ -228,8 +234,9 @@ void loop()
         //     lcd.setCursor(9, 3);
         //     lcd.print(text);
         // }
-        analogWrite(SILNIK_PWM, counterPWMForPump);
-
+        // analogWrite(SILNIK_PWM, counterPWMForPump);
+        Serial.print("pwm : ");
+        Serial.println(counterPWMForPump);
         // resetuje wyswietlacz po zmianach na niezmiennych
         if (isResetDisplay)
         {
@@ -244,9 +251,9 @@ void loop()
         {
             ShowDataDisplay();
         }
-        Serial.println(isResetDisplay);
+        // Serial.println(isResetDisplay);
 
-        // ShowDataConsol();
+        //ShowDataConsol();
 
         SprawdzRFID();
         if (isElectroMagneticUnLock)
@@ -257,7 +264,7 @@ void loop()
             }
         }
     }
-    delay(500); // wait 2 seconds
+    delay(10); // wait 2 seconds
 }
 
 void NapiszPrzywitanie(const char *uzytkownik)
@@ -308,6 +315,7 @@ void NapisStartowy()
 
 bool SprawdzRFID()
 {
+    digitalWrite(SS_PIN, LOW);
     bool isInDatabase = false;
     if (rfid_mfrc522.PICC_IsNewCardPresent())
     {
@@ -331,6 +339,7 @@ bool SprawdzRFID()
             rfid_mfrc522.PICC_HaltA();
         }
     }
+    digitalWrite(SS_PIN, HIGH);
     return isInDatabase;
 }
 
@@ -427,13 +436,13 @@ void startPomp()
 
     if (counterPWMForPump < 255)
     {
-        if ((now - rememberedTime) >= 50UL) // ważne żeby z dopikiem UL - bo unsigned long
+        if ((now - rememberedTime) >= 5UL) // ważne żeby z dopikiem UL - bo unsigned long
         {
             rememberedTime = now;
             counterPWMForPump += 5;
-            if (counterPWMForPump > 255)
+            if (counterPWMForPump > 50)
             {
-                counterPWMForPump = 255;
+                counterPWMForPump = 50;
             }
             analogWrite(SILNIK_PWM, counterPWMForPump); //Spokojne rozpędzanie silnika
         }
@@ -459,7 +468,7 @@ bool getDataIsWaterTankFull()
 void getHumidityGround()
 {
     float value = analogRead(PortCzujkiWilgotnosciGleby);
-
+    Serial.println(value);
     humidityGround = calculateHumidityGround(value);
 
     // gdy poza zakresem tak na wszelki wypadek gdyby zle pomiary lub gdy wyjdzie za zakres
