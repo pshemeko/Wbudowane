@@ -4,6 +4,10 @@
 // czujnik wilgotności, teperatury i ciśnienia - podlaczony w SDA i SCL - pin 20, 21, oraz zasilanie 5v
 //
 
+// dokumentacje:
+// SPI - http://castor.am.gdynia.pl/~dorra/pliki/Magistrale%20%20-%20podstawy%20teoretyczne.pdf
+// str 4-5 ustawienie czestotliwosci
+
 /*
 Podlaczenia arduino do plytki:
 pin     |   PIN     |   PIN
