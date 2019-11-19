@@ -78,26 +78,18 @@ Adafruit_TSL2561_Unified tsl = Adafruit_TSL2561_Unified(TSL2561_ADDR_FLOAT, 1234
 
 MFRC522 rfid_mfrc522(SS_PIN, RST_PIN); // Instance of the class for FRID
 
-bool isAuthorized = false;    // TODO usun juz nie uzywne
+bool isAuthorized = false;
 unsigned long rememberedTime; // = millis();
 unsigned long timeForElectroMagneticLock;
 bool isElectroMagneticUnLock = false;
 
 unsigned long timeForDisplay;
-<<<<<<< Updated upstream
-unsigned long timeOfLastRefreshLed; // ostatnia chwila kiedy odswiezylismy dane na wyswietlaczu
-=======
 unsigned long timeOfLastRefreshLed;
->>>>>>> Stashed changes
 
 bool isResetDisplay = false;
 // unsigned long nowTime;
 int counterPWMForPump = 0;
-<<<<<<< Updated upstream
-int MAX_VALUE_FOR_COUNTER_PWM = 0;
-=======
-int MAX_VALUE_FOR_COUNTER_PWM = 50;
->>>>>>> Stashed changes
+int MAX_VALUE_FOR_COUNTER_PWM = 250;
 
 //
 //for test
@@ -166,11 +158,7 @@ void setup()
     timeTime = millis();
     timeForElectroMagneticLock = timeTime;
     timeForDisplay = timeTime;
-<<<<<<< Updated upstream
-    timeOfLastRefreshLed = timeTime;
-=======
     timeOfLastRefreshLed = millis();
->>>>>>> Stashed changes
 
     // RFID
     SPI.begin(); // Init SPI bus
@@ -260,8 +248,8 @@ void loop()
         //     lcd.print(text);
         // }
         // analogWrite(SILNIK_PWM, counterPWMForPump);
-        // Serial.print("pwm : ");
-        // Serial.println(counterPWMForPump);
+        Serial.print("pwm : ");
+        Serial.println(counterPWMForPump);
         // resetuje wyswietlacz po zmianach na niezmiennych
         if (isResetDisplay)
         {
@@ -294,11 +282,7 @@ void loop()
             }
         }
     }
-<<<<<<< Updated upstream
-    delay(100); // wait 2 seconds
-=======
     delay(1000); // wait 2 seconds
->>>>>>> Stashed changes
 }
 
 void NapiszPrzywitanie(const char *uzytkownik)
@@ -322,13 +306,11 @@ void NapiszBrakAutoryzacji()
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print("Brak uprawnien");
-    lcd.setCursor(5, 1);
-    lcd.print("Do wejscia");
     timeForDisplay = millis();
     isResetDisplay = true;
 
     //delay(2000); // wait 2 seconds
-    // NapisStartowy();
+    //NapisStartowy();
 }
 
 void NapisBrakWody()
@@ -465,24 +447,18 @@ bool PorownajKarteZBaza(uint8_t karta[])
 
 void startPomp()
 {
+    unsigned long now = millis();
     // TO DO tylko do testow zmieniam by szybciej ruszylo potem usun tego if
     if (counterPWMForPump == 0)
     {
         //counterPWMForPump = 130;
     }
     //
-<<<<<<< Updated upstream
-
-    if (counterPWMForPump < MAX_VALUE_FOR_COUNTER_PWM)
-    {
-        unsigned long now = millis();
-=======
     Serial.print("counterPWMForPump");
     Serial.print(counterPWMForPump);
     if (counterPWMForPump < 255)
     {
         Serial.println("in");
->>>>>>> Stashed changes
         if ((now - rememberedTime) >= 5UL) // ważne żeby z dopikiem UL - bo unsigned long
         {
 
@@ -507,10 +483,10 @@ void stopPomp()
     //}
 }
 
-void getDataIsWaterTankFull()
+bool getDataIsWaterTankFull()
 {
     waterSensor = digitalRead(CZUJNIK_WODY_W_ZBIORNIKU);
-    ///return static_cast<bool>(waterSensor);
+    return static_cast<bool>(waterSensor);
 }
 
 void getHumidityGround()
@@ -655,7 +631,7 @@ void ShowDataDisplay()
     lcd.setCursor(3, 3);
     lcd.print(text);
 
-    sprintf(text, "PWM:%u", (int)(counterPWMForPump));
+    sprintf(text, "PWM:%u  ", (int)(counterPWMForPump));
     lcd.setCursor(11, 3);
     lcd.print(text);
 }
