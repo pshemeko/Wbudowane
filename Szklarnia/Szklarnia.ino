@@ -38,13 +38,14 @@ PIN 52  |   A0      |   Czujnik wilgotności gleby - A0
 
 dodatkowo Masa, Zasilanie 5V, oraz 3,3V   
 
-*/
+info podlaczen:
+przekaznik vcc na pin 23 reszta na mase - dziala
 
-/////////////// TODO
-//pierwszy if czy jest dostęp karta
-// drugi if czy jest woda w zbiorniku jak nie to wyswietlic napisów
-// jesli jest woda wyswietlamy dane:
-// co 20 sekund sprawdzac czujnik wilgotnosci gleby
+mamy spi na rfid
+mamu i2c na barometr i czujka swiatla
+gpio wyswietlacz
+
+*/
 
 #include "Seeed_BME280.h"
 #include <Wire.h>
@@ -55,7 +56,6 @@ dodatkowo Masa, Zasilanie 5V, oraz 3,3V
 #include <MFRC522.h> // RFID
 
 LiquidCrystal lcd(2, 3, 4, 5, 6, 7);
-//RTC_DS1307 czas; // TODO co to i czy potrzebne
 
 BME280 bme280; // pressure, temperature, altitude, humidityAir
 // swiatlo
@@ -89,7 +89,7 @@ unsigned long timeOfLastRefreshLed;
 bool isResetDisplay = false;
 // unsigned long nowTime;
 int counterPWMForPump = 0;
-int MAX_VALUE_FOR_COUNTER_PWM = 150; //40 bylo dobrze
+int MAX_VALUE_FOR_COUNTER_PWM = 40; //40 bylo dobrze
 
 //
 //for test
@@ -125,7 +125,7 @@ void setup()
 
     //
     Wire.begin();
-    // czas.begin();
+
     lcd.begin(20, 4);
 
     Serial.println(F("Arduino + BMP280"));
@@ -213,11 +213,11 @@ void loop()
         {
 
             // gdy wilgotnosc gleby poniżej 40 % wlacz pompe i podlej gdy za dyza wylacz pompe
-            if (humidityGround < 46.0)
+            if (humidityGround < 30.0)
             {
                 startPomp();
             }
-            if (humidityGround > 48.0)
+            if (humidityGround > 50.0)
             {
                 stopPomp();
             }
@@ -258,7 +258,7 @@ void loop()
         // resetuje wyswietlacz po zmianach na niezmiennych
         if (isResetDisplay)
         {
-            if ((millis() - timeForDisplay) >= 3000UL)
+            if ((millis() - timeForDisplay) >= 1000UL)
             {
                 isResetDisplay = false;
                 setDisplayConstText();
@@ -281,13 +281,13 @@ void loop()
         SprawdzRFID();
         if (isElectroMagneticUnLock)
         {
-            if (millis() - timeForElectroMagneticLock >= 5000UL)
+            if (millis() - timeForElectroMagneticLock >= 1000UL)
             {
                 closeLock();
             }
         }
     }
-    delay(1000); // wait 2 seconds
+    delay(100);
 }
 
 void NapiszPrzywitanie(const char *uzytkownik)
@@ -454,10 +454,10 @@ void startPomp()
 {
     unsigned long now = millis();
     // TO DO tylko do testow zmieniam by szybciej ruszylo potem usun tego if
-    if (counterPWMForPump == 0)
-    {
-        //counterPWMForPump = 130;
-    }
+    // if (counterPWMForPump == 0)
+    // {
+    //     counterPWMForPump = 130;
+    // }
     //
     Serial.print("counterPWMForPump: ");
     Serial.println(counterPWMForPump);
@@ -468,7 +468,7 @@ void startPomp()
         {
 
             rememberedTime = now;
-            counterPWMForPump += 5;
+            counterPWMForPump += 10;
             if (counterPWMForPump > MAX_VALUE_FOR_COUNTER_PWM)
             {
                 counterPWMForPump = MAX_VALUE_FOR_COUNTER_PWM;
@@ -484,7 +484,7 @@ void stopPomp()
     //{
     counterPWMForPump = 0;
     analogWrite(SILNIK_PWM, counterPWMForPump);
-    //Serial.println("ZATRZYMUJE POMPE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+    Serial.println("ZATRZYMUJE POMPE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
     //}
 }
 
@@ -514,25 +514,8 @@ void getHumidityGround()
 
 float calculateHumidityGround(float value)
 {
-    // można za pomocą funkcji arduino :
-    // map(value, minvalue, maxvalue, minoutput, maxoutput)
-    // gotowa funja z arduino ktora obliczy procent wilgotnosci
-    // http://tinybrd.pl/czujnik_wigloci/
 
-    // bez podlaczenia czegokolwiek wynik jest 262 :-)
-    // min na Ani czujniku 479 min na moim 642
-    // max na Ani czujniku 324 max na moim 427
-
-    // na Ani czujniku wzór jest:
-    //float returnValue = ((-100 * value) + 47900) / 155.0;
-
-    // na moim czujniku wzór jest :
-    // humidityGround = (( -100 * value) + 64200) / 255.0;
-
-    // gdy dla testow samo powietrze i woda:
-    // min - 1026
-    // max - 300
-    float returnValue = ((-100 * value) + 102600) / 726.0;
+    float returnValue = ((-100 * value) + 49000) / 185.0;
 
     return returnValue;
 }
@@ -571,7 +554,7 @@ void displayLightSensorDetails(void)
     Serial.println();
     Serial.println("------------------------------------");
     Serial.println("");
-    delay(500);
+    //delay(500);
 }
 
 void getDataFromBme280()
@@ -681,7 +664,3 @@ void ShowDataConsol()
 
     Serial.println(); // start a new line
 }
-
-//TODO
-//1. sprawdzic pomiary gleby w suchej i elnej wody doniczce
-//2. Srawdzić max i mnimum wartosci w czujniku światła
