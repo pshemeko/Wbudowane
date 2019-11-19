@@ -85,11 +85,7 @@ bool isElectroMagneticUnLock = false;
 
 unsigned long timeForDisplay;
 <<<<<<< Updated upstream
-<<<<<<< Updated upstream
 unsigned long timeOfLastRefreshLed; // ostatnia chwila kiedy odswiezylismy dane na wyswietlaczu
-=======
-unsigned long timeOfLastRefreshLed;
->>>>>>> Stashed changes
 =======
 unsigned long timeOfLastRefreshLed;
 >>>>>>> Stashed changes
@@ -98,11 +94,7 @@ bool isResetDisplay = false;
 // unsigned long nowTime;
 int counterPWMForPump = 0;
 <<<<<<< Updated upstream
-<<<<<<< Updated upstream
 int MAX_VALUE_FOR_COUNTER_PWM = 0;
-=======
-int MAX_VALUE_FOR_COUNTER_PWM = 50;
->>>>>>> Stashed changes
 =======
 int MAX_VALUE_FOR_COUNTER_PWM = 50;
 >>>>>>> Stashed changes
@@ -175,11 +167,7 @@ void setup()
     timeForElectroMagneticLock = timeTime;
     timeForDisplay = timeTime;
 <<<<<<< Updated upstream
-<<<<<<< Updated upstream
     timeOfLastRefreshLed = timeTime;
-=======
-    timeOfLastRefreshLed = millis();
->>>>>>> Stashed changes
 =======
     timeOfLastRefreshLed = millis();
 >>>>>>> Stashed changes
@@ -307,11 +295,7 @@ void loop()
         }
     }
 <<<<<<< Updated upstream
-<<<<<<< Updated upstream
     delay(100); // wait 2 seconds
-=======
-    delay(1000); // wait 2 seconds
->>>>>>> Stashed changes
 =======
     delay(1000); // wait 2 seconds
 >>>>>>> Stashed changes
@@ -344,11 +328,7 @@ void NapiszBrakAutoryzacji()
     isResetDisplay = true;
 
     //delay(2000); // wait 2 seconds
-<<<<<<< Updated upstream
     // NapisStartowy();
-=======
-    //NapisStartowy();
->>>>>>> Stashed changes
 }
 
 void NapisBrakWody()
@@ -492,22 +472,16 @@ void startPomp()
     }
     //
 <<<<<<< Updated upstream
-<<<<<<< Updated upstream
 
     if (counterPWMForPump < MAX_VALUE_FOR_COUNTER_PWM)
     {
         unsigned long now = millis();
 =======
-=======
->>>>>>> Stashed changes
     Serial.print("counterPWMForPump");
     Serial.print(counterPWMForPump);
     if (counterPWMForPump < 255)
     {
         Serial.println("in");
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
 >>>>>>> Stashed changes
         if ((now - rememberedTime) >= 5UL) // ważne żeby z dopikiem UL - bo unsigned long
         {
@@ -681,11 +655,7 @@ void ShowDataDisplay()
     lcd.setCursor(3, 3);
     lcd.print(text);
 
-<<<<<<< Updated upstream
     sprintf(text, "PWM:%u", (int)(counterPWMForPump));
-=======
-    sprintf(text, "PWM:%u  ", (int)(counterPWMForPump));
->>>>>>> Stashed changes
     lcd.setCursor(11, 3);
     lcd.print(text);
 }
