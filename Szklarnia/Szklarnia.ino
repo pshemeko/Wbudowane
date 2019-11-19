@@ -14,7 +14,7 @@ pin     |   PIN     |   PIN
 Płytka  |   Arduino |   Sprzęt
 --------|-----------|-------------------------------------------------------------------------
 PIN 23  |   22      |   Osobnym kablem laczyc z ledem  - Dioda Let imitujaca swiatlo - zarowke
-        |   23      |   Podlaczenie do elektrozamka poki co osobno
+        |   43      |   Podlaczenie do elektrozamka poki co osobno
                         Podlaczenie: pin 43 do VCC a pozostałe GND i IN do GND
 
 PIN 35  |   46      |   Mostek H - 7 - wejście określające kierunek obrotów pierwszego silnika
@@ -89,7 +89,7 @@ unsigned long timeOfLastRefreshLed;
 bool isResetDisplay = false;
 // unsigned long nowTime;
 int counterPWMForPump = 0;
-int MAX_VALUE_FOR_COUNTER_PWM = 250;
+int MAX_VALUE_FOR_COUNTER_PWM = 150; //40 bylo dobrze
 
 //
 //for test
@@ -207,18 +207,21 @@ void loop()
         if (!waterSensor)
         {
             NapisBrakWody();
-        }
-
-        // gdy wilgotnosc gleby poniżej 40 % wlacz pompe i podlej gdy za dyza wylacz pompe
-        if (humidityGround < 46.0)
-        {
-            startPomp();
-        }
-        if (humidityGround > 48.0)
-        {
             stopPomp();
         }
+        else
+        {
 
+            // gdy wilgotnosc gleby poniżej 40 % wlacz pompe i podlej gdy za dyza wylacz pompe
+            if (humidityGround < 46.0)
+            {
+                startPomp();
+            }
+            if (humidityGround > 48.0)
+            {
+                stopPomp();
+            }
+        }
         // Obsluga żarówki
         // TODO ustawic progowe swiecenia zerowki(diody) empirycznie
 
@@ -248,12 +251,14 @@ void loop()
         //     lcd.print(text);
         // }
         // analogWrite(SILNIK_PWM, counterPWMForPump);
-        Serial.print("pwm : ");
-        Serial.println(counterPWMForPump);
+
+        //Serial.print("pwm : ");
+        //Serial.println(counterPWMForPump);
+
         // resetuje wyswietlacz po zmianach na niezmiennych
         if (isResetDisplay)
         {
-            if ((millis() - timeForDisplay) >= 5000UL)
+            if ((millis() - timeForDisplay) >= 3000UL)
             {
                 isResetDisplay = false;
                 setDisplayConstText();
@@ -454,8 +459,8 @@ void startPomp()
         //counterPWMForPump = 130;
     }
     //
-    Serial.print("counterPWMForPump");
-    Serial.print(counterPWMForPump);
+    Serial.print("counterPWMForPump: ");
+    Serial.println(counterPWMForPump);
     if (counterPWMForPump < 255)
     {
         Serial.println("in");
@@ -479,7 +484,7 @@ void stopPomp()
     //{
     counterPWMForPump = 0;
     analogWrite(SILNIK_PWM, counterPWMForPump);
-    Serial.println("ZATRZYMUJE POMPE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+    //Serial.println("ZATRZYMUJE POMPE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
     //}
 }
 
@@ -492,7 +497,8 @@ bool getDataIsWaterTankFull()
 void getHumidityGround()
 {
     float value = analogRead(PortCzujkiWilgotnosciGleby);
-    //Serial.println(value);
+    Serial.print("czujnik gleby: ");
+    Serial.println(value);
     humidityGround = calculateHumidityGround(value);
 
     // gdy poza zakresem tak na wszelki wypadek gdyby zle pomiary lub gdy wyjdzie za zakres
@@ -609,7 +615,7 @@ void ShowDataDisplay()
     lcd.print(text);
 
     // 3: print humidity of Air
-    sprintf(text, "%u%%", (int)(humidityGround));
+    sprintf(text, "%u%%  ", (int)(humidityGround));
     lcd.setCursor(9, 2);
     lcd.print(text);
 
