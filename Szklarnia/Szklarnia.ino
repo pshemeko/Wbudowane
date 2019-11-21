@@ -151,7 +151,7 @@ void setup()
 
     pinMode(DiodaJakoZarowka, OUTPUT);
     pinMode(ElektrozamekPin, OUTPUT);
-    digitalWrite(ElektrozamekPin, LOW);
+    digitalWrite(ElektrozamekPin, HIGH);
 
     digitalWrite(SILNIK_Kierunek1, LOW); //Silnik nr 1 - obroty w lewo
     digitalWrite(SILNIK_Kierunek2, HIGH);
@@ -371,14 +371,14 @@ bool SprawdzRFID()
 
 void openLock()
 {
-    digitalWrite(ElektrozamekPin, HIGH);
+    digitalWrite(ElektrozamekPin, LOW);
     timeForElectroMagneticLock = millis();
     isElectroMagneticUnLock = true;
 }
 
 void closeLock()
 {
-    digitalWrite(ElektrozamekPin, LOW);
+    digitalWrite(ElektrozamekPin, HIGH);
     isElectroMagneticUnLock = false;
 }
 
@@ -616,7 +616,7 @@ void ShowDataDisplay()
         lcd.print(text);
     }
 
-    sprintf(text, "%uLux", (int)(illuminance));
+    sprintf(text, "%uLux ", (int)(illuminance));
     lcd.setCursor(3, 3);
     lcd.print(text);
 
