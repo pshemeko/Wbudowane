@@ -89,7 +89,7 @@ unsigned long timeOfLastRefreshLed;
 bool isResetDisplay = false;
 // unsigned long nowTime;
 int counterPWMForPump = 0;
-int MAX_VALUE_FOR_COUNTER_PWM = 40; //40 bylo dobrze
+int MAX_VALUE_FOR_COUNTER_PWM = 195; //40 bylo dobrze
 
 //
 //for test
@@ -118,7 +118,7 @@ void setup()
         while (1)
             ;
     }
-    displayLightSensorDetails();
+    // displayLightSensorDetails();
     ///////////////////
     // czujnik wody
     pinMode(CZUJNIK_WODY_W_ZBIORNIKU, INPUT_PULLUP);
@@ -128,7 +128,7 @@ void setup()
 
     lcd.begin(20, 4);
 
-    Serial.println(F("Arduino + BMP280"));
+    // Serial.println(F("Arduino + BMP280"));
 
     if (!bme280.init())
     {
@@ -151,7 +151,7 @@ void setup()
 
     pinMode(DiodaJakoZarowka, OUTPUT);
     pinMode(ElektrozamekPin, OUTPUT);
-    digitalWrite(ElektrozamekPin, HIGH);
+    digitalWrite(ElektrozamekPin, LOW);
 
     digitalWrite(SILNIK_Kierunek1, LOW); //Silnik nr 1 - obroty w lewo
     digitalWrite(SILNIK_Kierunek2, HIGH);
@@ -169,7 +169,7 @@ void setup()
     pinMode(SS_PIN, OUTPUT);
     digitalWrite(SS_PIN, HIGH);
 
-    Serial.println("RFID reading UID");
+    //Serial.println("RFID reading UID");
 }
 
 void loop()
@@ -371,14 +371,14 @@ bool SprawdzRFID()
 
 void openLock()
 {
-    digitalWrite(ElektrozamekPin, LOW);
+    digitalWrite(ElektrozamekPin, HIGH);
     timeForElectroMagneticLock = millis();
     isElectroMagneticUnLock = true;
 }
 
 void closeLock()
 {
-    digitalWrite(ElektrozamekPin, HIGH);
+    digitalWrite(ElektrozamekPin, LOW);
     isElectroMagneticUnLock = false;
 }
 
@@ -526,9 +526,11 @@ void setDisplayConstText()
     lcd.setCursor(0, 0);
     lcd.print("Temp:");
     lcd.setCursor(0, 1);
-    lcd.print("Pres:");
+    lcd.print("Pressure:");
     lcd.setCursor(0, 2);
-    lcd.print("Humidity:");
+    lcd.print("Grd Humidity:");
+    lcd.setCursor(0, 3);
+    lcd.print("Light:");
 }
 
 void displayLightSensorDetails(void)
@@ -594,15 +596,17 @@ void ShowDataDisplay()
     lcd.print(text);
     // 2: print pressure
     sprintf(text, "%u.%02u hPa ", (int)(pressure / 100), (int)((uint32_t)pressure % 100));
-    lcd.setCursor(5, 1);
+    lcd.setCursor(9, 1);
     lcd.print(text);
 
     // 3: print humidity of Air
     sprintf(text, "%u%%  ", (int)(humidityGround));
-    lcd.setCursor(9, 2);
+    lcd.setCursor(13, 2);
     lcd.print(text);
 
     // na wyswietlaczy wyswietla hi lub lo jak jest lub nie ma wody
+
+    /*
     if (waterSensor == LOW)
     {
         sprintf(text, "Lo");
@@ -615,14 +619,15 @@ void ShowDataDisplay()
         lcd.setCursor(0, 3);
         lcd.print(text);
     }
+    */
 
-    sprintf(text, "%uLux ", (int)(illuminance));
-    lcd.setCursor(3, 3);
+    sprintf(text, "%u Lux  ", (int)(illuminance));
+    lcd.setCursor(6, 3);
     lcd.print(text);
 
-    sprintf(text, "PWM:%u  ", (int)(counterPWMForPump));
-    lcd.setCursor(11, 3);
-    lcd.print(text);
+    // sprintf(text, "PWM:%u  ", (int)(counterPWMForPump));
+    // lcd.setCursor(11, 3);
+    // lcd.print(text);
 }
 
 void ShowDataConsol()
